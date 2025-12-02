@@ -23,6 +23,11 @@ prometheus_data/
 grafana_data/
 data/
 
+# BUT keep Grafana dashboard configs
+!monitoring/grafana/
+!monitoring/grafana/**/*.json
+!monitoring/grafana/**/*.yml
+
 # Configuration files with sensitive data
 backfill.json
 backfill_3years.json
