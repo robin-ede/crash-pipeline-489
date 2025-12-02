@@ -6,7 +6,7 @@
 
 ## 📺 Video Demonstration
 
-[**Full Pipeline Walkthrough Video**](YOUR_VIDEO_LINK_HERE)
+[**Full Pipeline Walkthrough Video**](https://youtu.be/FIPSvIuHfQs)
 
 ---
 
