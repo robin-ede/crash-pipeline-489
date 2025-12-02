@@ -260,10 +260,10 @@ def render_home_tab():
         st.markdown("""
         <div class="info-card">
         <h3>🚨 Injury Outcome</h3>
-        <p><strong>Label predicted:</strong> <code>serious</code> • <strong>Type:</strong> binary • <strong>Positive class:</strong> 1 (injury occurred)</p>
+        <p><strong>Label predicted:</strong> <code>injury</code> • <strong>Type:</strong> binary • <strong>Positive class:</strong> 1 (injury occurred)</p>
 
         <p><strong>Pipeline:</strong><br/>
-        We built a model to predict whether a crash resulted in serious injuries (fatal or incapacitating) using crash context signals like speed limits, weather conditions, time patterns, location, and vehicle/people characteristics.</p>
+        We built a model to predict whether a crash resulted in injuries using crash context signals like speed limits, weather conditions, time patterns, location, and vehicle/people characteristics.</p>
 
         <p><strong>Key features (why they help):</strong></p>
         <ul>
@@ -285,7 +285,7 @@ def render_home_tab():
 
         <p><strong>Class imbalance:</strong></p>
         <ul>
-        <li>Any injury represents a more balanced target compared to serious injuries only (expected ~30-40% of crashes)</li>
+        <li>Any injury represents a more balanced target (expected ~30-40% of crashes)</li>
         <li>Handling: Monitor class distribution. Use <code>class_weight='balanced'</code> or adjust classification threshold based on precision-recall tradeoff</li>
         </ul>
 
@@ -1056,7 +1056,7 @@ def render_eda_tab():
             serious_counts,
             names="Outcome",
             values="Count",
-            title="Proportion of Serious vs No Injury Injuries",
+            title="Proportion of Injury vs No Injury",
             color_discrete_sequence=px.colors.qualitative.Set2
         )
         st.plotly_chart(fig4, use_container_width=True)
@@ -1064,7 +1064,7 @@ def render_eda_tab():
         # Calculate data-driven insight
         serious_pct = (df["injury"].sum() / len(df)) * 100
         imbalance_ratio = (len(df) - df["injury"].sum()) / df["injury"].sum()
-        st.caption(f"💡 Insight: Serious injuries represent {serious_pct:.1f}% of crashes (imbalance ratio ~1:{imbalance_ratio:.0f}). Class balancing techniques recommended for ML models.")
+        st.caption(f"💡 Insight: Injuries represent {serious_pct:.1f}% of crashes (imbalance ratio ~1:{imbalance_ratio:.0f}). Class balancing techniques recommended for ML models.")
 
     # Visualization 5: Heatmap - Hour × Day of Week
     if "hour" in df.columns and "day_of_week" in df.columns:
@@ -1146,7 +1146,7 @@ def render_eda_tab():
         if "injury_label" in df.columns:
             serious_sampled = map_sample["injury"].sum()
             serious_pct_map = (serious_sampled / len(map_sample)) * 100
-            st.caption(f"💡 Insight: Sampled {sample_size} crashes. {int(serious_sampled)} serious injuries shown in red ({serious_pct_map:.1f}%). Hotspots visible along major arterials and downtown.")
+            st.caption(f"💡 Insight: Sampled {sample_size} crashes. {int(serious_sampled)} injuries shown in red ({serious_pct_map:.1f}%). Hotspots visible along major arterials and downtown.")
         else:
             st.caption(f"💡 Insight: Sampled {sample_size} crashes across Chicago. Geographic patterns reveal high-traffic corridors.")
 
@@ -1304,7 +1304,7 @@ def render_eda_tab():
         high_speed_serious = speed_df[(speed_df["injury"] == 1) & (speed_df["posted_speed_limit"] >= 45)].shape[0]
         high_speed_nonserious = speed_df[(speed_df["injury"] == 0) & (speed_df["posted_speed_limit"] >= 45)].shape[0]
 
-        st.caption(f"💡 Insight: Both serious and no injury crashes show similar median speed limits ({serious_median_speed:.0f} mph vs {nonserious_median_speed:.0f} mph), but no injury crashes occur more frequently at higher speeds (≥45 mph: {high_speed_nonserious} no injury vs {high_speed_serious} serious). Volume differences, not speed alone, drive the distribution.")
+        st.caption(f"💡 Insight: Both injury and no injury crashes show similar median speed limits ({serious_median_speed:.0f} mph vs {nonserious_median_speed:.0f} mph), but no injury crashes occur more frequently at higher speeds (≥45 mph: {high_speed_nonserious} no injury vs {high_speed_serious} injury). Volume differences, not speed alone, drive the distribution.")
 
 # =============================
 # Tab 6: Model
