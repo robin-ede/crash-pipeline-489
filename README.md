@@ -6,7 +6,7 @@
 
 ## 📺 Video Demonstration
 
-[**Full Pipeline Walkthrough Video**](https://youtu.be/FIPSvIuHfQs)
+[![**Full Pipeline Walkthrough Video**](https://img.youtube.com/vi/FIPSvIuHfQs/maxresdefault.jpg)](https://youtu.be/FIPSvIuHfQs)
 
 ---
 
@@ -230,6 +230,7 @@ curl -X POST http://localhost:8000/api/fetch/publish \
 4. **Grafana Permissions**: Fixed with `chown 472:472 grafana_data` (Grafana runs as UID 472)
 5. **DuckDB Concurrent Access**: Dashboard/API use read-only connections; only Cleaner writes (single-writer pattern)
 6. **Large Model Files**: Moved to `.gitignore`, generated locally instead of committing to Git
+7. **Grafana Dashboard Persistence**: Dashboards stored in internal database were lost on redeployment. Solved by exporting to JSON (`monitoring/grafana/dashboards/`) and provisioning via Docker volumes for automatic import on container startup
 
 ### Key Learnings
 
@@ -251,3 +252,124 @@ curl -X POST http://localhost:8000/api/fetch/publish \
 - **Real-Time Streaming**: Kafka + Flink for sub-second predictions
 - **Geospatial Viz**: Interactive crash hotspot maps with Folium/Deck.gl
 - **Data Versioning**: Delta Lake or Apache Iceberg for schema evolution and time-travel queries
+
+---
+
+## ☁️ Azure Cloud Deployment
+
+### VM Configuration
+
+The pipeline is deployed on **Azure for Students** with the following setup:
+
+**VM Specifications**:
+- **Name**: `crash-pipeline-vm`
+- **Size**: Standard B2ls v2 (2 vCPUs, 4 GiB memory)
+- **Region**: West US 2
+- **OS**: Ubuntu Server 24.04 LTS (x64 Gen2)
+- **Authentication**: SSH key pair (RSA format)
+- **Storage**: 30 GB Premium SSD
+
+**Networking**:
+- Public IP: Enabled (zone-redundant)
+- Inbound ports opened:
+  - `22` - SSH
+  - `3000` - Grafana
+  - `8000` - FastAPI
+  - `8001` - Transformer metrics
+  - `8002` - Cleaner metrics
+  - `8501` - Streamlit Dashboard
+  - `9000` - MinIO API
+  - `9001` - MinIO Console
+  - `9090` - Prometheus
+  - `15672` - RabbitMQ Management
+
+### Deployment Steps
+
+1. **VM Setup**
+   ```bash
+   # Update system
+   sudo apt update && sudo apt upgrade -y
+
+   # Install dependencies
+   sudo apt install git docker.io docker-compose python3 python3-pip golang -y
+
+   # Configure Docker permissions
+   sudo usermod -aG docker $USER
+   newgrp docker
+   ```
+
+2. **Clone Repository**
+   ```bash
+   # Generate SSH key for GitHub
+   ssh-keygen -t ed25519 -C "your-email@tamu.edu"
+   cat ~/.ssh/id_ed25519.pub  # Add to GitHub SSH keys
+
+   # Clone project
+   git clone git@github.com:robin-ede/crash-pipeline.git
+   cd crash-pipeline
+   ```
+
+3. **Environment Configuration**
+   ```bash
+   # Create .env from template
+   cp .env.sample .env
+   nano .env  # Configure MinIO, RabbitMQ credentials
+
+   # Create required folders
+   mkdir -p minio-data prometheus_data grafana_data data/gold data/schedules
+
+   # Fix permissions
+   sudo chown -R $USER:$USER minio-data prometheus_data data
+   sudo chown -R 472:472 grafana_data  # Grafana runs as UID 472
+   chmod -R 755 minio-data prometheus_data data
+   ```
+
+4. **Launch Pipeline**
+   ```bash
+   docker compose up -d
+   docker compose ps  # Verify all services running
+   ```
+
+### Local vs Azure Differences
+
+| Aspect | Local Ubuntu VM | Azure Cloud VM |
+|--------|----------------|----------------|
+| **Access** | `localhost` or LAN IP | Public IP (e.g., `20.85.113.47`) |
+| **URLs** | `http://localhost:8501` | `http://<PUBLIC_IP>:8501` |
+| **Firewall** | UFW (local firewall) | Azure NSG (Network Security Group) |
+| **Port Management** | Manual `ufw allow` | Azure Portal inbound rules |
+| **Persistence** | Survives restarts | Survives restarts (bound volumes) |
+| **SSH Access** | Local network only | Internet-accessible (key required) |
+| **Cost** | Free (self-hosted) | ~$35/month (B2ls v2) |
+| **Performance** | Varies by hardware | Consistent 2 vCPU / 4GB |
+| **Data Transfer** | No limits | Azure egress charges apply |
+| **Security** | LAN isolated | Exposed to internet (requires hardening) |
+
+**Key Behavioral Differences**:
+- **No code changes required** - Same Docker Compose configuration works on both environments
+- **Network latency** - Azure VM has ~20-50ms additional latency for dashboard interactions
+- **Data persistence** - Both use Docker volumes; Azure data survives VM restarts
+- **MinIO storage** - Local uses host filesystem; Azure uses VM disk (30GB limit)
+- **Monitoring** - Same Prometheus/Grafana dashboards work identically
+
+### Azure Pipeline Verification
+
+![Azure Pipeline Runs](README-assets/azure-runs.png)
+*Screenshot showing Azure VM (74.179.85.75) and 4 successful pipeline runs on the Reports page*
+
+**Run #1 (Initial Stream)**:
+- Extracted 30 days of most recent crash
+- Transformer processed 8K+ records
+- Cleaner loaded to DuckDB Gold
+- Streamlit dashboard accessible at `http://74.179.85.75:8501`
+- Trained XGBoost model with 89% accuracy
+- Grafana dashboards showing metrics
+
+**Run #2-4 (Backfill Testing)**:
+- Extracted historical data using watermark tracking
+- No duplicate records in Gold tables (verified via SQL)
+- Model predictions consistent with local results
+- All services remained healthy (0 container restarts)
+- Correlation IDs tracked across all runs (visible in Reports page)
+
+
