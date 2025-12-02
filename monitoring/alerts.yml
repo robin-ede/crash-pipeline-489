@@ -1,0 +1,80 @@
+groups:
+  - name: pipeline_alerts
+    interval: 30s
+    rules:
+      # Alert if Extractor has failures
+      - alert: ExtractorFailures
+        expr: increase(extractor_jobs_failed_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: extractor
+        annotations:
+          summary: "Extractor job failures detected"
+          description: "Extractor has failed {{ $value }} jobs in the last 5 minutes"
+
+      # Alert if Cleaner is too slow
+      - alert: CleanerTooSlow
+        expr: histogram_quantile(0.95, sum(rate(cleaner_processing_duration_seconds_bucket[5m])) by (le)) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: cleaner
+        annotations:
+          summary: "Cleaner processing is slow"
+          description: "95th percentile cleaner duration is {{ $value }}s (threshold: 10s)"
+
+      # Alert if RabbitMQ queue is backing up
+      - alert: RabbitMQQueueBackup
+        expr: rabbitmq_queue_messages_ready > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: rabbitmq
+        annotations:
+          summary: "RabbitMQ queue is backing up"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages ready"
+
+      # Alert if Extractor fetches zero rows
+      - alert: ExtractorZeroRows
+        expr: rate(extractor_rows_fetched_total[10m]) == 0 and extractor_jobs_completed_total > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: extractor
+        annotations:
+          summary: "Extractor fetching zero rows"
+          description: "Extractor has not fetched any rows in the last 10 minutes"
+
+      # Alert if API error rate is high
+      - alert: APIHighErrorRate
+        expr: rate(api_requests_total{status=~"5.."}[5m]) / rate(api_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      # Alert if model accuracy drops
+      - alert: MLModelAccuracyDrop
+        expr: ml_model_accuracy < 0.7
+        for: 5m
+        labels:
+          severity: warning
+          service: dashboard
+        annotations:
+          summary: "ML model accuracy has dropped"
+          description: "Model accuracy is {{ $value }} (threshold: 0.7)"
+
+      # Alert if MinIO bucket is growing too fast
+      - alert: MinIOStorageGrowth
+        expr: rate(minio_bucket_usage_total_bytes[1h]) > 1e9
+        for: 10m
+        labels:
+          severity: info
+          service: minio
+        annotations:
+          summary: "MinIO storage growing rapidly"
+          description: "Bucket {{ $labels.bucket }} growing at {{ $value | humanize }}B/s"

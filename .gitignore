@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+env/
+*.egg-info/
+
+# Go
+bin/
+*.exe
+extractor/extractor
+
+# Environment + Secrets
+.env
+.env.local
+.env.*.local
+
+# Data folders (should NEVER go to GitHub)
+minio-data/
+prometheus_data/
+grafana_data/
+data/
+
+# Configuration files with sensitive data
+backfill.json
+backfill_3years.json
+backfill_test.json
+streaming.json
+*.json.local
+
+# Databases & Binary data
+*.duckdb
+*.wal
+*.db
+
+# Models
+*.pkl
+*.joblib
+
+# Logs
+*.log
+
+# Assignment docs
+assignments/
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Dashboard artifacts
+dashboard/artifacts/
+
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+.cache/
