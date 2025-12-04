@@ -1,0 +1,113 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: ["*"]
+
+jobs:
+  build:
+    name: Build and Validate Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build Go extractor
+        run: |
+          cd extractor
+          go mod tidy
+          go build ./...
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r transformer/requirements.txt
+          pip install -r cleaner/requirements.txt
+          pip install -r api/requirements.txt
+          pip install -r dashboard/requirements.txt
+
+      - name: Python import tests
+        run: |
+          python -c "import sys; sys.path.insert(0, 'transformer'); import transformer"
+          python -c "import sys; sys.path.insert(0, 'cleaner'); import cleaner"
+          python -c "import sys; sys.path.insert(0, 'api'); import server"
+          python -c "import sys; sys.path.insert(0, 'dashboard'); import app"
+
+  docker-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build key services with docker compose
+        run: |
+          docker compose -f docker-compose.yaml build extractor
+          docker compose -f docker-compose.yaml build transformer
+          docker compose -f docker-compose.yaml build cleaner
+          docker compose -f docker-compose.yaml build api
+          docker compose -f docker-compose.yaml build dashboard
+
+      - name: Validate docker-compose.yaml
+        run: |
+          docker compose -f docker-compose.yaml config
+
+  sanity-check:
+    name: Sanity Checks
+    runs-on: ubuntu-latest
+    needs: docker-validation
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Extractor sanity test
+        run: |
+          cd extractor
+          go run main.go --help
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r transformer/requirements.txt
+          pip install -r cleaner/requirements.txt
+
+      - name: Transformer import test
+        run: |
+          python - <<EOF
+          import sys
+          sys.path.insert(0, 'transformer')
+          import transformer
+          print("Transformer imported successfully")
+          EOF
+
+      - name: Cleaner import test
+        run: |
+          python - <<EOF
+          import sys
+          sys.path.insert(0, 'cleaner')
+          import cleaner
+          print("Cleaner imported successfully")
+          EOF
+
