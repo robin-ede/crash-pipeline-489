@@ -52,6 +52,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create .env file from sample
+        run: cp .env.sample .env
+
       - name: Build key services with docker compose
         run: |
           docker compose -f docker-compose.yaml build extractor
