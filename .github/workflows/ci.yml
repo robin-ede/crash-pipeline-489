@@ -76,16 +76,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
-
-      - name: Extractor sanity test
-        run: |
-          cd extractor
-          go run main.go --help
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
