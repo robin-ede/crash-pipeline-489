@@ -373,3 +373,5 @@ The pipeline is deployed on **Azure for Students** with the following setup:
 - Correlation IDs tracked across all runs (visible in Reports page)
 
 
+
+# CI/CD Pipeline Enabled
